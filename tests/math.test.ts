@@ -458,5 +458,31 @@ describe('edge cases', () => {
     const texts = findTextNodes(doc)
     expect(texts).toContain('Following paragraph text.')
   })
+
+  it('preserves LaTeX backslashes and escaped braces like \\right\\} and \\Big\\} with protectMath', () => {
+    const md = 'Formule: $\\left. \\text{A} \\right\\} \\text{ B}$ et $\\Big\\}$'
+    const protectedMd = protectMath(md)
+    const doc = parseMarkdown(protectedMd, {
+      extensions: mathExtension(),
+    })
+    const html = findHtmlNodes(doc)
+    expect(html.length).toBe(2)
+    expect(html[0].value).toContain('katex')
+    expect(html[0].value).not.toContain('katex-error')
+    expect(html[1].value).toContain('katex')
+    expect(html[1].value).not.toContain('katex-error')
+  })
+
+  it('preserves LaTeX line breaks \\\\ in formulas with protectMath', () => {
+    const md = '$$\\begin{matrix} a \\\\ b \\end{matrix}$$'
+    const protectedMd = protectMath(md)
+    const doc = parseMarkdown(protectedMd, {
+      extensions: mathExtension(),
+    })
+    const html = findHtmlNodes(doc)
+    expect(html.length).toBe(1)
+    expect(html[0].value).toContain('katex')
+    expect(html[0].value).not.toContain('katex-error')
+  })
 })
 

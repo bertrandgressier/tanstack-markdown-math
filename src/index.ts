@@ -14,11 +14,12 @@ import type {
 
 export const MATH_UNDERSCORE_SUB = '\uE000'
 export const MATH_ASTERISK_SUB = '\uE001'
+export const MATH_BACKSLASH_SUB = '\uE002'
 
 /**
- * Protects underscores and asterisks inside math formulas (`$...$` and `$$...$$`)
- * before markdown parsing. This prevents markdown parsers from misinterpreting
- * TeX subscripts like `$_2$` or `*` as markdown emphasis (`*...*` or `_..._`).
+ * Protects backslashes, underscores and asterisks inside math formulas (`$...$` and `$$...$$`)
+ * before markdown parsing. This prevents markdown parsers from unescaping TeX commands (like `\{`, `\}`, `\\`)
+ * or misinterpreting TeX subscripts/operators like `$_2$` or `*` as markdown emphasis (`*...*` or `_..._`).
  *
  * The math extensions automatically restore the original characters before rendering.
  */
@@ -27,6 +28,7 @@ export function protectMath(content: string): string {
     /(\$\$[\s\S]+?\$\$|\$(?:[^\s$]|\S[\s\S]*?\S)\$)/g,
     (match) => {
       return match
+        .replaceAll('\\', MATH_BACKSLASH_SUB)
         .replaceAll('_', MATH_UNDERSCORE_SUB)
         .replaceAll('*', MATH_ASTERISK_SUB)
     },
@@ -40,6 +42,7 @@ export function restoreMathChars(tex: string): string {
   return tex
     .replaceAll(MATH_UNDERSCORE_SUB, '_')
     .replaceAll(MATH_ASTERISK_SUB, '*')
+    .replaceAll(MATH_BACKSLASH_SUB, '\\')
 }
 
 function escapeHtml(str: string): string {
@@ -239,7 +242,12 @@ function mapInlines(
 ): InlineNode[] {
   const out: InlineNode[] = []
   for (const node of inlines) {
-    if (node?.type === 'text' && (node.value.includes('$') || node.value.includes(MATH_UNDERSCORE_SUB))) {
+    if (
+      node?.type === 'text' &&
+      (node.value.includes('$') ||
+        node.value.includes(MATH_UNDERSCORE_SUB) ||
+        node.value.includes(MATH_BACKSLASH_SUB))
+    ) {
       out.push(...splitTextNode(node.value, render, allowSpaces))
     } else if (node?.type === 'inlineHtml' && (node as { value: string }).value.includes('$')) {
       ;(node as { value: string }).value = replaceMathInHtml(
