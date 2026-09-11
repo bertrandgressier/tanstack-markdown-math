@@ -95,7 +95,7 @@ function buildInlineMathRe(allowSpaces?: boolean): RegExp {
   if (allowSpaces) {
     return /\$([^$\n]+?)\$/g
   }
-  return /\$([^$\n\s][^$\n]*?[^$\n\s])\$/g
+  return /\$([^\s$](?:[^$\n]*?[^\s$])?)\$/g
 }
 
 function splitTextNode(

@@ -235,6 +235,24 @@ describe('mathInlineExtension', () => {
     expect(html).toHaveLength(0)
   })
 
+  it('transforms single-character inline math in strict mode', () => {
+    const md = 'Soit $x$ et $n$ des entiers.'
+    const doc = parseMarkdown(md, {
+      extensions: [mathInlineExtension()],
+    })
+    const html = findHtmlNodes(doc)
+    expect(html).toHaveLength(2)
+  })
+
+  it('does not match when the closing $ is preceded by a space', () => {
+    const md = 'Value $b $ is not math.'
+    const doc = parseMarkdown(md, {
+      extensions: [mathInlineExtension()],
+    })
+    const html = findHtmlNodes(doc)
+    expect(html).toHaveLength(0)
+  })
+
   it('allows spaces inside delimiters when allowSpaces is true', () => {
     const md = 'It costs $ 5 $ and $ 10 $ today.'
     const doc = parseMarkdown(md, {
