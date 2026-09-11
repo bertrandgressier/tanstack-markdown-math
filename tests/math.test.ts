@@ -369,13 +369,21 @@ describe('edge cases', () => {
     expect(findHtmlNodes(doc)).toHaveLength(0)
   })
 
-  it('ignores dollar signs inside raw html blocks', () => {
-    const md = '<div>$x$</div>'
-    const doc = parseMarkdown(md, {
+  it('transforms math in escaped html lines but ignores real html blocks', () => {
+    const escaped = parseMarkdown('<div>$x$</div>', {
       extensions: mathExtension(),
     })
-    const html = findHtmlNodes(doc)
-    expect(html.length).toBe(0)
+    expect(
+      findHtmlNodes(escaped).filter((n) => n.value.includes('katex')).length,
+    ).toBe(1)
+
+    const raw = parseMarkdown('<div>$x$</div>', {
+      allowHtml: true,
+      extensions: mathExtension(),
+    })
+    const nodes = findHtmlNodes(raw)
+    expect(nodes).toHaveLength(1)
+    expect(nodes[0].value).toBe('<div>$x$</div>')
   })
 
   it('keeps track of streaming unclosed inline expression safely', () => {
