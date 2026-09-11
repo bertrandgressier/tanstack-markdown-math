@@ -16,7 +16,7 @@ pnpm add tanstack-markdown-math @tanstack/markdown katex
 # yarn add tanstack-markdown-math @tanstack/markdown katex
 ```
 
-`@tanstack/markdown` and `katex` are peer dependencies. A custom `render` option lets you avoid KaTeX at runtime, but it remains a peer dependency for now.
+`@tanstack/markdown` and `katex` are peer dependencies. A custom `render` option lets you avoid KaTeX at runtime, but it remains a peer dependency for now. `react` (>=18) is an optional peer, only needed for the `tanstack-markdown-math/react` subpath.
 
 ## Quick start
 
@@ -39,7 +39,7 @@ $$`}
 }
 ```
 
-> **Important:** rendered math is emitted as `html`/`inlineHtml` nodes, so you **must** set `allowHtml: true` for anything to show up in the React component.
+> **Important:** rendered math is emitted as `html`/`inlineHtml` nodes, so you **must** set `allowHtml: true` for anything to show up in the React component. See [Block math without `allowHtml`](#block-math-without-allowhtml-component-output) for the `component` output mode.
 
 ### With `parseMarkdown()`
 
@@ -72,8 +72,48 @@ import {
 | -------------- | ----------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `render`       | `(tex: string, displayMode: boolean) => string` | KaTeX       | Custom renderer. Receives raw TeX and whether it should be rendered in display mode. Great for MathJax, server-side rendering, or mocking in tests.                      |
 | `allowSpaces`  | `boolean`                                       | `false`     | Inline-math only. When `true`, allows spaces inside delimiters (`$ x $`). When `false`, matches only non-whitespace math (`$x$`), preventing false positives like `$5`. |
+| `output`       | `'html' \| 'component'`                         | `'html'`    | Block-math only. `'component'` emits a `component` node carrying raw TeX, removing the `allowHtml` requirement (see below).                                              |
+| `tagName`      | `string`                                        | `'MathBlock'` | Block-math only. Tag name of the `component` node, to be mapped through the renderers' `components` option.                                                            |
 
-`mathBlockExtension` accepts only `render`; `mathInlineExtension` accepts `render` and `allowSpaces`.
+`mathBlockExtension` accepts `render`, `output` and `tagName`; `mathInlineExtension` accepts `render` and `allowSpaces`.
+
+## Block math without `allowHtml` (component output)
+
+With `output: 'component'`, block math is emitted as a `component` node carrying the raw TeX in `properties.tex`, instead of a pre-rendered `html` node. The AST stays serialization-clean and no `allowHtml` is needed.
+
+**HTML renderer** — zero configuration: the extension ships a `renderHtml` hook that renders the component node.
+
+```ts
+import { renderHtml } from '@tanstack/markdown'
+import { mathBlockExtension } from 'tanstack-markdown-math'
+
+const html = renderHtml('$$\n\\frac{1}{2}\n$$', {
+  extensions: [mathBlockExtension({ output: 'component' })],
+}) // → KaTeX HTML, no allowHtml
+```
+
+**React renderer** — map the tag name to the provided component:
+
+```tsx
+import { Markdown } from '@tanstack/markdown/react'
+import { mathExtension } from 'tanstack-markdown-math'
+import { MathBlock } from 'tanstack-markdown-math/react'
+
+export function Page() {
+  return (
+    <Markdown
+      extensions={mathExtension({ output: 'component' })}
+      components={{ MathBlock }}
+    >
+      {'$$\n\\frac{1}{2}\n$$'}
+    </Markdown>
+  )
+}
+```
+
+`MathBlock` renders `properties.tex` via KaTeX in display mode; provide your own component (`{ tex }` props) for full control. Without a `components` mapping, the node falls back to a plain `<MathBlock tex="...">` element.
+
+> **Inline math note:** the `component` mode currently applies to block math only. Inline math still requires `allowHtml: true` because `@tanstack/markdown` has no extension hook for custom inline output yet — tracked in [TanStack/markdown#9](https://github.com/TanStack/markdown/issues/9).
 
 ## Inline math modes
 
@@ -144,10 +184,10 @@ Because `@tanstack/markdown` extensions run during document parsing, both block 
 
 ## Design notes
 
-These notes are intended as discussion points if/when this functionality is proposed upstream to TanStack Markdown:
+These notes follow the upstream discussion in [TanStack/markdown#13](https://github.com/TanStack/markdown/issues/13) (consolidated into [#9](https://github.com/TanStack/markdown/issues/9)):
 
 1. **First-class math nodes vs. html injection**
-   The current implementation emits `html`/`inlineHtml` nodes. A richer design would introduce a dedicated `math`/`inlineMath` node type, moving HTML generation to the renderer. That would keep the AST serialization-cleaner, but it requires renderer cooperation that `@tanstack/markdown` does not currently provide.
+   The default mode emits `html`/`inlineHtml` nodes. The `component` output mode (block math) demonstrates the richer design enabled by the existing `ComponentNode`: raw TeX in the AST, rendering deferred to the renderer (`renderHtml` hook / React `components` map), no `allowHtml`. Inline math cannot use this yet — a custom inline output hook is tracked upstream in #9.
 
 2. **`transformDocument` vs `transformInline`**
    `transformInline` is called once per inline container (paragraph, heading, list item, table cell) with the container's top-level nodes, during parsing. This implementation instead uses `transformDocument`, which traverses the fully parsed AST. Both work in 0.0.13; `transformInline` would avoid the full-document walk and could simplify future versions.
