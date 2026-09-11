@@ -1,0 +1,49 @@
+{
+  "name": "tanstack-markdown-math",
+  "version": "0.1.0",
+  "description": "Math extension for @tanstack/markdown with KaTeX rendering",
+  "license": "MIT",
+  "author": "Bertrand GRESSIER",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bertrandgressier/tanstack-markdown-math.git"
+  },
+  "bugs": {
+    "url": "https://github.com/bertrandgressier/tanstack-markdown-math/issues"
+  },
+  "homepage": "https://github.com/bertrandgressier/tanstack-markdown-math#readme",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "pnpm exec tsc",
+    "test": "vitest run",
+    "typecheck": "pnpm exec tsc --noEmit",
+    "prepublishOnly": "pnpm run build"
+  },
+  "peerDependencies": {
+    "@tanstack/markdown": "^0.0.13",
+    "katex": ">=0.16"
+  },
+  "devDependencies": {
+    "@tanstack/markdown": "0.0.13",
+    "@types/katex": "^0.16.7",
+    "katex": "^0.16.22",
+    "typescript": "^5.8.0",
+    "vitest": "^3.0.0"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=18"
+  }
+}
