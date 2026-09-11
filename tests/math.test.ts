@@ -4,6 +4,8 @@ import {
   mathBlockExtension,
   mathExtension,
   mathInlineExtension,
+  protectMath,
+  restoreMathChars,
 } from '../src/index.js'
 
 function findHtmlNodes(doc: unknown): Array<{ type: string; value: string }> {
@@ -394,4 +396,55 @@ describe('edge cases', () => {
     const html = findHtmlNodes(doc)
     expect(html).toHaveLength(0)
   })
+
+  it('protectMath and restoreMathChars prevent underscore emphasis corruption', () => {
+    const raw = 'Liaison $\\text{H}_2\\text{O}$ et $[Na^+]_1$ et $J_f$'
+    const protectedMd = protectMath(raw)
+    expect(protectedMd).not.toContain('_')
+    const doc = parseMarkdown(protectedMd, {
+      extensions: mathExtension(),
+    })
+    const html = findHtmlNodes(doc)
+    expect(html.length).toBeGreaterThanOrEqual(3)
+    // Check that H2O was rendered with KaTeX
+    expect(html[0].value).toContain('katex')
+    expect(html[0].value).toContain('H')
+  })
+
+  it('parses inline math starting with $$ followed by text on same line without swallowing page', () => {
+    const md = '$$\\rightarrow$$ Identification des mécanismes en jeu\n\nAutre paragraphe'
+    const doc = parseMarkdown(md, {
+      extensions: mathExtension(),
+    })
+    // Must produce two paragraphs, not swallow into a single unclosed block
+    expect(doc.children.length).toBe(2)
+    const html = findHtmlNodes(doc)
+    expect(html.length).toBe(1)
+    expect(html[0].value).toContain('katex')
+  })
+
+  it('transforms math inside inlineHtml elements like <u>', () => {
+    const md = '<u>$V_1$ : ophtalmique</u>'
+    const doc = parseMarkdown(md, {
+      allowHtml: true,
+      extensions: mathExtension(),
+    })
+    const html = findHtmlNodes(doc)
+    expect(html.length).toBe(1)
+    expect(html[0].value).toContain('<u>')
+    expect(html[0].value).toContain('katex')
+    expect(html[0].value).toContain('</u>')
+  })
+
+  it('displays clean error badge when KaTeX encounters invalid LaTeX', () => {
+    const md = '$\\invalidMacroFooBar{123}$'
+    const doc = parseMarkdown(md, {
+      extensions: mathExtension(),
+    })
+    const html = findHtmlNodes(doc)
+    expect(html.length).toBe(1)
+    expect(html[0].value).toContain('katex-error')
+    expect(html[0].value).toContain('⚠️')
+  })
 })
+

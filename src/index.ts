@@ -63,7 +63,7 @@ function defaultRenderer(tex: string, displayMode: boolean): string {
       displayMode,
       throwOnError: false,
     })
-    if (html.includes('class="katex-error"')) {
+    if (html.includes('class="katex-error"') || html.includes('#cc0000')) {
       const titleMatch = html.match(/title="([^"]*)"/)
       const errTitle = titleMatch ? titleMatch[1] : 'Erreur syntaxe LaTeX'
       if (displayMode) {
@@ -287,9 +287,25 @@ function walkNode(
 
   if (
     type === 'code' ||
-    type === 'html' ||
     type === 'inlineCode'
   ) {
+    return
+  }
+
+  if (type === 'html') {
+    const val = (n.value as string) ?? ''
+    // Allow transforming math inside inline-style HTML blocks (e.g. <u>...</u> at start of line)
+    // while leaving structural block HTML (e.g. <div>...</div>) untouched.
+    if (
+      /^<\s*(?:u|span|em|strong|b|i|font|small|sub|sup|mark)\b/i.test(val) &&
+      val.includes('$')
+    ) {
+      ;(n as { value: string }).value = replaceMathInHtml(
+        val,
+        render,
+        allowSpaces,
+      )
+    }
     return
   }
 
@@ -389,3 +405,6 @@ export function mathInlineExtension(
 export function mathExtension(opts?: MathOptions): MarkdownExtension[] {
   return [mathBlockExtension(opts), mathInlineExtension(opts)]
 }
+
+export type { MathBlockOptions, MathInlineOptions, MathOptions }
+
