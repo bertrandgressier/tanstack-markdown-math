@@ -160,7 +160,11 @@ export function mathBlockExtension(
       while (i < context.lines.length) {
         const l = context.lines[i] ?? ''
         i++
-        if (/^\s*\$\$\s*$/.test(l)) {
+        const closeMatch = l.match(/^(.*?)\$\$\s*$/)
+        if (closeMatch) {
+          if (closeMatch[1].length > 0) {
+            content.push(closeMatch[1])
+          }
           context.consume(i - context.index)
           return emit(restoreMathChars(content.join('\n')))
         }

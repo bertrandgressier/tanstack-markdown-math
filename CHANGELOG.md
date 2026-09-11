@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.1
+
+### Changes
+
+- **Fix multiline block closing delimiter** — `mathBlockExtension` now recognizes `$$` at the end of a line even when attached directly to code without preceding whitespace (e.g. `\end{aligned}$$` or `\end{matrix}$$`), preventing block fences from swallowing subsequent lines.
+- **Merge inlineHtml pairs** — automatically merges matching inline HTML tag pairs (e.g. `<u>...</u>`) inside formatting structures so `@tanstack/markdown`'s React renderer preserves the underline style without breaking text into disjoint spans.
+
 ## 0.2.0
 
 ### Summary

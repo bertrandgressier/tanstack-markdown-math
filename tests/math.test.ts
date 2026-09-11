@@ -446,5 +446,17 @@ describe('edge cases', () => {
     expect(html[0].value).toContain('katex-error')
     expect(html[0].value).toContain('⚠️')
   })
+
+  it('closes multiline block when $$ is attached to content on the closing line', () => {
+    const md = '$$\n\\begin{aligned}\nx = 1\n\\end{aligned}$$\n\nFollowing paragraph text.'
+    const doc = parseMarkdown(md, {
+      extensions: mathExtension(),
+    })
+    const html = findHtmlNodes(doc)
+    expect(html.length).toBe(1)
+    expect(html[0].value).toContain('katex-display')
+    const texts = findTextNodes(doc)
+    expect(texts).toContain('Following paragraph text.')
+  })
 })
 

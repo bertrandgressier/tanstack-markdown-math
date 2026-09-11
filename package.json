@@ -1,6 +1,6 @@
 {
   "name": "tanstack-markdown-math",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Math extension for @tanstack/markdown with KaTeX rendering",
   "license": "MIT",
   "author": "Bertrand GRESSIER",
