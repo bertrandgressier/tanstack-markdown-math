@@ -6,7 +6,6 @@
 
 - **Protect TeX backslashes and LaTeX braces** — `protectMath` now protects backslashes (`\`) inside math formulas (`MATH_BACKSLASH_SUB`), preventing CommonMark parsers from stripping backslashes before markdown characters like `\{`, `\}`, or collapsing double backslashes `\\` in matrices and aligned equations.
 - **Fix multiline block closing delimiter** — `mathBlockExtension` now recognizes `$$` at the end of a line even when attached directly to code without preceding whitespace (e.g. `\end{aligned}$$` or `\end{matrix}$$`), preventing block fences from swallowing subsequent lines.
-- **Merge inlineHtml pairs** — automatically merges matching inline HTML tag pairs (e.g. `<u>...</u>`) inside formatting structures so `@tanstack/markdown`'s React renderer preserves the underline style without breaking text into disjoint spans.
 
 ## 0.2.0
 
