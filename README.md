@@ -149,8 +149,8 @@ These notes are intended as discussion points if/when this functionality is prop
 1. **First-class math nodes vs. html injection**
    The current implementation emits `html`/`inlineHtml` nodes. A richer design would introduce a dedicated `math`/`inlineMath` node type, moving HTML generation to the renderer. That would keep the AST serialization-cleaner, but it requires renderer cooperation that `@tanstack/markdown` does not currently provide.
 
-2. **`transformInline` gap in `@tanstack/markdown` 0.0.13**
-   The documented `transformInline` hook is never called for extension-provided transforms in 0.0.13. This implementation therefore uses `transformDocument`, which works because it can traverse and mutate the fully parsed AST. Relying on `transformDocument` has a slight semantic cost (full-document walk instead of per-inline pass) but is the only reliable hook available today.
+2. **`transformDocument` vs `transformInline`**
+   `transformInline` is called once per inline container (paragraph, heading, list item, table cell) with the container's top-level nodes, during parsing. This implementation instead uses `transformDocument`, which traverses the fully parsed AST. Both work in 0.0.13; `transformInline` would avoid the full-document walk and could simplify future versions.
 
 3. **Inline parsing order**
    Inline math must be processed after bold, italic, links, and code have already been parsed into typed nodes, so the walker skips typed nodes that should not contain math. A true inline transformer in the parser would achieve the same result more cleanly.

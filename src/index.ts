@@ -240,9 +240,9 @@ function walkNode(
  * balanced `$...$` pair into a KaTeX-rendered `inlineHtml` node.
  *
  * @remarks
- * In `@tanstack/markdown` 0.0.13 `transformInline` is never called for
- * extensions, so this extension uses `transformDocument` to mutate the
- * already-parsed AST.
+ * Uses `transformDocument` to walk the parsed AST. `transformInline` is
+ * also called per inline container in `@tanstack/markdown` 0.0.13 and
+ * could be used instead for a per-container pass.
  */
 export function mathInlineExtension(
   opts?: MathInlineOptions,
