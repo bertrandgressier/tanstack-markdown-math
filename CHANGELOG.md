@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.3.0
+
+### Summary
+
+Inline math joins the `component` output mode, using the new `inlineComponent` node type added upstream in [`@tanstack/markdown` 0.0.15](https://github.com/TanStack/markdown/pull/17). Full math rendering (block + inline) now works **without `allowHtml`**, with a serialization-clean AST.
+
+### Changes
+
+- **Inline component output** — `mathInlineExtension({ output: 'component' })` emits `inlineComponent` nodes (`{ name: 'math', tagName: 'MathInline', properties: { tex } }`) instead of pre-rendered `inlineHtml`. The extension's `renderHtml` hook renders them in the HTML renderer (KaTeX inline mode, no `allowHtml`), and React consumers map them via `components: { MathInline }`.
+- **New `MathInline` React component** — exported from `tanstack-markdown-math/react`; renders `tex` via KaTeX in inline mode (`displayMode: false` by default).
+- **New `inlineTagName` option** — customizes the inline component tag name (default `'MathInline'`). `tagName` remains block-only.
+- **`output: 'component'` on `mathExtension()` now applies to both block and inline math** — previously inline math always stayed `inlineHtml`.
+- **Trimmed TeX payloads** — inline component `properties.tex` is trimmed, keeping the AST clean when `allowSpaces` captures edge whitespace.
+- **31 new integration tests** (TDD, written before implementation) covering parsing in all inline containers, real-world formula extraction from a dense medical corpus (chemistry brackets, Greek letters, French decimal commas, multi-math sentences, prose/money dollar false positives, code protection, `protectMath` round-trip), HTML rendering without `allowHtml`, custom renderers, JSON round-trips, React `components` mapping, SSR, and streaming behavior.
+
+### Impact on consumers
+
+**No action required for existing code.** The default output mode (`'html'`) is unchanged and fully backward compatible.
+
+- If you use `mathExtension({ output: 'component' })` (introduced in 0.2.0): inline math now also emits `inlineComponent` nodes instead of `inlineHtml`. Map `MathInline` in your `components` option (or your own component reading `props.tex`) to render it; the HTML renderer needs nothing.
+- Inline `output: 'component'` requires `@tanstack/markdown` >= 0.0.15. The default `'html'` mode still works with >= 0.0.13.
+
 ## 0.2.1
 
 ### Changes

@@ -3,7 +3,7 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { parseMarkdown, renderHtml } from '@tanstack/markdown'
 import { Markdown, renderMarkdownReact } from '@tanstack/markdown/react'
-import { mathBlockExtension, mathExtension } from '../src/index.js'
+import { mathBlockExtension, mathExtension, mathInlineExtension } from '../src/index.js'
 import { MathBlock } from '../src/react.js'
 
 interface FoundComponent {
@@ -98,6 +98,22 @@ describe('mathBlockExtension component output — parsing', () => {
   it('composes with the inline extension via mathExtension', () => {
     const doc = parseMarkdown('Inline $x$ and\n\n$$block$$', {
       extensions: mathExtension({ output: 'component' }),
+    })
+    const components = findComponentNodes(doc)
+    expect(components).toHaveLength(1)
+    // Since 0.3.0, output: 'component' applies to inline math as well
+    // (requires @tanstack/markdown >= 0.0.15 for inlineComponent nodes).
+    const html = JSON.stringify(doc)
+    expect(html).toContain('"type":"inlineComponent"')
+    expect(html).toContain('"tagName":"MathInline"')
+  })
+
+  it('keeps inline output as inlineHtml when only the block extension uses component mode', () => {
+    const doc = parseMarkdown('Inline $x$ and\n\n$$block$$', {
+      extensions: [
+        mathBlockExtension({ output: 'component' }),
+        mathInlineExtension(),
+      ],
     })
     const components = findComponentNodes(doc)
     expect(components).toHaveLength(1)

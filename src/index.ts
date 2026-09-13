@@ -120,6 +120,15 @@ function isMathComponentNode(
   return node.type === 'component' && node.name === MATH_COMPONENT_NAME
 }
 
+function isMathInlineComponentNode(
+  node: BlockNode | InlineNode,
+): node is InlineNode & { properties?: { tex?: string } } {
+  return (
+    node.type === 'inlineComponent' &&
+    (node as unknown as { name?: string }).name === MATH_COMPONENT_NAME
+  )
+}
+
 /**
  * Block math extension. Recognizes fenced `$$...$$` blocks (multi-line or
  * single-line).
@@ -187,7 +196,18 @@ function mathInlineNode(
   tex: string,
   render: (tex: string, displayMode: boolean) => string,
   displayMode = false,
+  inlineTag?: string,
 ): InlineNode {
+  if (inlineTag) {
+    return {
+      type: 'inlineComponent',
+      name: 'math',
+      attributes: {},
+      tagName: inlineTag,
+      properties: { tex: tex.trim() },
+      children: [],
+    } as InlineNode
+  }
   return {
     type: 'inlineHtml',
     value: render(tex, displayMode),
@@ -214,6 +234,7 @@ function splitTextNode(
   value: string,
   render: (tex: string, displayMode: boolean) => string,
   allowSpaces?: boolean,
+  inlineTag?: string,
 ): InlineNode[] {
   const re = allowSpaces
     ? /\$\$([\s\S]+?)\$\$|\$((?:[^\n$]|\n(?!\s*\n))+?)\$/g
@@ -226,7 +247,7 @@ function splitTextNode(
     const rawTex = m[1] ?? m[2] ?? ''
     const tex = restoreMathChars(rawTex)
     if (idx > last) out.push({ type: 'text', value: value.slice(last, idx) })
-    out.push(mathInlineNode(tex, render, false))
+    out.push(mathInlineNode(tex, render, false, inlineTag))
     last = idx + m[0].length
   }
   if (last < value.length) {
@@ -239,6 +260,7 @@ function mapInlines(
   inlines: InlineNode[],
   render: (tex: string, displayMode: boolean) => string,
   allowSpaces?: boolean,
+  inlineTag?: string,
 ): InlineNode[] {
   const out: InlineNode[] = []
   for (const node of inlines) {
@@ -248,7 +270,7 @@ function mapInlines(
         node.value.includes(MATH_UNDERSCORE_SUB) ||
         node.value.includes(MATH_BACKSLASH_SUB))
     ) {
-      out.push(...splitTextNode(node.value, render, allowSpaces))
+      out.push(...splitTextNode(node.value, render, allowSpaces, inlineTag))
     } else if (node?.type === 'inlineHtml' && (node as { value: string }).value.includes('$')) {
       ;(node as { value: string }).value = replaceMathInHtml(
         (node as { value: string }).value,
@@ -263,6 +285,7 @@ function mapInlines(
           children,
           render,
           allowSpaces,
+          inlineTag,
         )
       }
       out.push(node)
@@ -281,6 +304,7 @@ function walkNode(
   node: unknown,
   render: (tex: string, displayMode: boolean) => string,
   allowSpaces?: boolean,
+  inlineTag?: string,
 ): void {
   if (!node || typeof node !== 'object') return
   const n = node as Record<string, unknown>
@@ -292,6 +316,7 @@ function walkNode(
         n.children as InlineNode[],
         render,
         allowSpaces,
+        inlineTag,
       )
     }
     return
@@ -336,13 +361,13 @@ function walkNode(
   if (type === 'table') {
     if (Array.isArray(n.header)) {
       (n.header as unknown[]).forEach((child) =>
-        walkNode(child, render, allowSpaces),
+        walkNode(child, render, allowSpaces, inlineTag),
       )
     }
     if (Array.isArray(n.rows)) {
       for (const row of n.rows as unknown[]) {
         if (Array.isArray(row)) {
-          row.forEach((cell) => walkNode(cell, render, allowSpaces))
+          row.forEach((cell) => walkNode(cell, render, allowSpaces, inlineTag))
         }
       }
     }
@@ -352,7 +377,7 @@ function walkNode(
   if (type === 'list') {
     if (Array.isArray(n.items)) {
       (n.items as unknown[]).forEach((item) =>
-        walkNode(item, render, allowSpaces),
+        walkNode(item, render, allowSpaces, inlineTag),
       )
     }
     return
@@ -361,7 +386,7 @@ function walkNode(
   if (type === 'blockquote' || type === 'callout') {
     if (Array.isArray(n.children)) {
       (n.children as unknown[]).forEach((child) =>
-        walkNode(child, render, allowSpaces),
+        walkNode(child, render, allowSpaces, inlineTag),
       )
     }
     return
@@ -378,6 +403,7 @@ function walkNode(
         n.children as InlineNode[],
         render,
         allowSpaces,
+        inlineTag,
       )
     }
     return
@@ -385,27 +411,34 @@ function walkNode(
 
   if (Array.isArray(n.children)) {
     (n.children as unknown[]).forEach((child) =>
-      walkNode(child, render, allowSpaces),
+      walkNode(child, render, allowSpaces, inlineTag),
     )
   }
 }
 
 /**
  * Inline math extension. Walks the parsed document and converts every
- * balanced `$...$` or `$$...$$` pair into a KaTeX-rendered `inlineHtml` node.
+ * balanced `$...$` or `$$...$$` pair into a KaTeX-rendered `inlineHtml` node,
+ * or into an `inlineComponent` node when `output: 'component'` is set.
  */
 export function mathInlineExtension(
   opts?: MathInlineOptions,
 ): MarkdownExtension {
   const render = getRenderer(opts)
   const allowSpaces = opts?.allowSpaces
+  const inlineTag =
+    opts?.output === 'component' ? opts.inlineTagName ?? 'MathInline' : undefined
   return {
     name: 'math-inline',
     transformDocument(doc: MarkdownDocument) {
       ;(doc.children as unknown[]).forEach((child) =>
-        walkNode(child, render, allowSpaces),
+        walkNode(child, render, allowSpaces, inlineTag),
       )
       return doc
+    },
+    renderHtml(node) {
+      if (!isMathInlineComponentNode(node)) return undefined
+      return render(restoreMathChars(node.properties?.tex ?? ''), false)
     },
   }
 }

@@ -26,10 +26,15 @@ export interface MathOptions {
    */
   output?: 'html' | 'component'
   /**
-   * Tag name used for `output: 'component'`. Default `'MathBlock'`.
+   * Tag name used for block `output: 'component'`. Default `'MathBlock'`.
    * Map it to a component of your choice via the renderers' `components` map.
    */
   tagName?: string
+  /**
+   * Tag name used for inline `output: 'component'`. Default `'MathInline'`.
+   * Map it to a component of your choice via the renderers' `components` map.
+   */
+  inlineTagName?: string
 }
 
 export interface MathBlockOptions {
@@ -41,5 +46,18 @@ export interface MathBlockOptions {
 export interface MathInlineOptions {
   render?: MathOptions['render']
   allowSpaces?: MathOptions['allowSpaces']
+  /**
+   * Output node type for inline math. Requires `@tanstack/markdown` >= 0.0.15
+   * for the `inlineComponent` node type.
+   *
+   * - `'html'` (default): emits a pre-rendered `inlineHtml` node; renderers
+   *   need `allowHtml: true`.
+   * - `'component'`: emits an `inlineComponent` node carrying the raw TeX in
+   *   `properties.tex`. No `allowHtml` needed: the extension handles HTML
+   *   rendering via its `renderHtml` hook, and React consumers pick the
+   *   implementation through `components: { MathInline }`.
+   */
+  output?: MathOptions['output']
+  inlineTagName?: MathOptions['inlineTagName']
 }
 
