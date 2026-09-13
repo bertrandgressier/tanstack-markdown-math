@@ -84,10 +84,40 @@ function defaultRenderer(tex: string, displayMode: boolean): string {
   }
 }
 
+const RENDER_CACHE_LIMIT = 1000
+
+/**
+ * Wraps a render function in an LRU cache keyed by `(tex, displayMode)`.
+ * Formulas are often repeated across a document; caching makes repeated
+ * renders free and keeps streaming re-parses cheap. Only successful
+ * results are cached; thrown errors propagate uncached.
+ */
+function createCachedRenderer(
+  render: (tex: string, displayMode: boolean) => string,
+): (tex: string, displayMode: boolean) => string {
+  const cache = new Map<string, string>()
+  return (tex: string, displayMode: boolean): string => {
+    const key = (displayMode ? '1' : '0') + tex
+    const hit = cache.get(key)
+    if (hit !== undefined) {
+      cache.delete(key)
+      cache.set(key, hit)
+      return hit
+    }
+    const html = render(tex, displayMode)
+    cache.set(key, html)
+    if (cache.size > RENDER_CACHE_LIMIT) {
+      const oldest = cache.keys().next().value
+      if (oldest !== undefined) cache.delete(oldest)
+    }
+    return html
+  }
+}
+
 function getRenderer(
   opts: MathBlockOptions | MathInlineOptions | undefined,
 ): (tex: string, displayMode: boolean) => string {
-  return opts?.render ?? defaultRenderer
+  return createCachedRenderer(opts?.render ?? defaultRenderer)
 }
 
 function mathBlockNode(

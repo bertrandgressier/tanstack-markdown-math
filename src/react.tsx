@@ -1,4 +1,4 @@
-import { createElement } from 'react'
+import { createElement, memo } from 'react'
 
 import katexRender from 'katex'
 
@@ -32,8 +32,10 @@ export interface MathComponentProps {
  *   {'$$\\frac{1}{2}$$'}
  * </Markdown>
  * ```
+ * Memoized on `(tex, displayMode)`: repeated formulas and parent re-renders
+ * skip the KaTeX call entirely.
  */
-export function MathBlock({ tex, displayMode = true }: MathComponentProps) {
+export const MathBlock = memo(function MathBlock({ tex, displayMode = true }: MathComponentProps) {
   const html = katexRender.renderToString(tex ?? '', {
     ...DEFAULT_KATEX_OPTIONS,
     displayMode,
@@ -42,7 +44,7 @@ export function MathBlock({ tex, displayMode = true }: MathComponentProps) {
     className: 'math-block',
     dangerouslySetInnerHTML: { __html: html },
   })
-}
+})
 
 /**
  * Ready-made React component for `mathInlineExtension({ output: 'component' })`.
@@ -62,8 +64,10 @@ export function MathBlock({ tex, displayMode = true }: MathComponentProps) {
  *   {'Inline $E = mc^2$ math.'}
  * </Markdown>
  * ```
+ * Memoized on `(tex, displayMode)`: repeated formulas and parent re-renders
+ * skip the KaTeX call entirely.
  */
-export function MathInline({ tex, displayMode = false }: MathComponentProps) {
+export const MathInline = memo(function MathInline({ tex, displayMode = false }: MathComponentProps) {
   const html = katexRender.renderToString(tex ?? '', {
     ...DEFAULT_KATEX_OPTIONS,
     displayMode,
@@ -72,4 +76,4 @@ export function MathInline({ tex, displayMode = false }: MathComponentProps) {
     className: 'math-inline',
     dangerouslySetInnerHTML: { __html: html },
   })
-}
+})

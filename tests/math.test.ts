@@ -155,6 +155,38 @@ describe('mathInlineExtension', () => {
     expect(html[0].value).toContain('E = mc^2')
   })
 
+  it('caches render results: one call per unique formula', () => {
+    let calls = 0
+    const render = (tex: string): string => {
+      calls++
+      return `<i>${tex}</i>`
+    }
+    const doc = parseMarkdown('a $x$ b $x$ c $y$ d $x$', {
+      allowHtml: true,
+      extensions: [mathInlineExtension({ render })],
+    })
+    expect(calls).toBe(2)
+    const html = findHtmlNodes(doc)
+    const values = html.map((n) => n.value)
+    expect(values.filter((v) => v === '<i>x</i>')).toHaveLength(3)
+    expect(values.filter((v) => v === '<i>y</i>')).toHaveLength(1)
+  })
+
+  it('does not cache thrown errors from custom renderers', () => {
+    let calls = 0
+    const render = (): string => {
+      calls++
+      throw new Error('boom')
+    }
+    const ext = mathInlineExtension({ render })
+    const parse = () =>
+      parseMarkdown('a $x$ b', { allowHtml: true, extensions: [ext] })
+    expect(parse).toThrow('boom')
+    expect(calls).toBe(1)
+    expect(parse).toThrow('boom')
+    expect(calls).toBe(2)
+  })
+
   it('renders inline math inside a heading', () => {
     const md = '## Velocity $v = \\frac{d}{t}$'
     const doc = parseMarkdown(md, {
