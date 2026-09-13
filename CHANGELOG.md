@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.1
+
+### Changes
+
+- **Documentation sync** — README now matches actual behavior: math inside `inlineHtml` and inline-style HTML blocks (`<u>`, `<span>`, `<em>`…) is rendered (structural block HTML like `<div>` remains untouched), `protectMath`/`restoreMathChars` helpers and the `MATH_*_SUB` constants are documented, styled KaTeX error badges are mentioned, and the streaming section covers `component` output mode. No code changes.
+
 ## 0.3.0
 
 ### Summary
