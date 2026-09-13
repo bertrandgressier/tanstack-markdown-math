@@ -63,8 +63,13 @@ import {
 ```
 
 - `mathExtension(opts?)` → `[mathBlockExtension(opts), mathInlineExtension(opts)]`
-- `mathBlockExtension(opts?)` → parses `$$...$$` blocks into `html` nodes.
-- `mathInlineExtension(opts?)` → walks the AST and converts `$...$` into `inlineHtml` nodes.
+- `mathBlockExtension(opts?)` → parses `$$...$$` blocks into `html` nodes (`component` nodes with `output: 'component'`).
+- `mathInlineExtension(opts?)` → walks the AST and converts `$...$` into `inlineHtml` nodes (`inlineComponent` nodes with `output: 'component'`).
+
+The extensions also export helpers used when pre-processing content through other tools:
+
+- `protectMath(content)` → replaces `\`, `_` and `*` inside math spans with private-use characters (`MATH_BACKSLASH_SUB`, `MATH_UNDERSCORE_SUB`, `MATH_ASTERISK_SUB`) so other markdown passes cannot unescape TeX commands or turn subscripts into emphasis.
+- `restoreMathChars(tex)` → inverse mapping, applied automatically before rendering.
 
 ### `MathOptions`
 
@@ -155,7 +160,9 @@ Inline math is explicitly skipped inside:
 
 - code blocks
 - inline code
-- raw html blocks / inline html
+- structural block HTML (e.g. `<div>...</div>`)
+
+Math inside inline HTML **is** rendered: `$` spans inside `inlineHtml` nodes (e.g. `<u>$V_1$</u>`) and inside inline-style HTML blocks (`<u>`, `<span>`, `<em>`, `<strong>`, `<b>`, `<i>`, `<font>`, `<small>`, `<sub>`, `<sup>`, `<mark>`) are converted in place.
 
 ## Block math
 
@@ -175,13 +182,14 @@ Unclosed `$$` blocks are consumed to the end of the document and rendered as par
 
 ## Streaming
 
-Because `@tanstack/markdown` extensions run during document parsing, both block and inline extensions handle incomplete input with the same parser-created AST. An unclosed `$$` block produces an `html` node; an unclosed `$...$` pair is left as literal text until the closing delimiter arrives.
+Because `@tanstack/markdown` extensions run during document parsing, both block and inline extensions handle incomplete input with the same parser-created AST. An unclosed `$$` block produces an `html` node (`component` node in component mode) rendered as partial math; an unclosed `$...$` pair is left as literal text until the closing delimiter arrives.
 
 ## Edge cases
 
 - Several inline math expressions on the same line are each rendered separately.
-- Raw HTML containing `$` is not parsed as math.
+- Math inside inline HTML (`<u>$x$</u>`) is rendered; structural block HTML containing `$` is left untouched.
 - Code fences / inline code containing `$` are preserved verbatim.
+- Invalid TeX renders as a styled error badge/box instead of raw KaTeX output (default renderer only).
 - `mathBlockExtension` runs before built-in block parsers because it is registered earlier in the extension array.
 
 ## Design notes
