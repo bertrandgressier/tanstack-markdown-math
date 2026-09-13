@@ -75,8 +75,9 @@ import {
 | `output`       | `'html' \| 'component'`                         | `'html'`    | Block and inline math. `'component'` emits `component`/`inlineComponent` nodes carrying raw TeX, removing the `allowHtml` requirement (see below).                        |
 | `tagName`      | `string`                                        | `'MathBlock'` | Block-math only. Tag name of the `component` node, to be mapped through the renderers' `components` option.                                                            |
 | `inlineTagName`| `string`                                        | `'MathInline'` | Inline-math only. Tag name of the `inlineComponent` node, to be mapped through the renderers' `components` option.                                                      |
+| `cache`        | `boolean \| number`                             | `true`      | Render cache (LRU, 1000 entries). `false` disables it — use this with an impure custom `render` (side effects, non-deterministic output). A number sets a custom entry limit. |
 
-`mathBlockExtension` accepts `render`, `output` and `tagName`; `mathInlineExtension` accepts `render`, `allowSpaces`, `output` and `inlineTagName`.
+`mathBlockExtension` accepts `render`, `output`, `tagName` and `cache`; `mathInlineExtension` accepts `render`, `allowSpaces`, `output`, `inlineTagName` and `cache`.
 
 ## Math without `allowHtml` (component output)
 

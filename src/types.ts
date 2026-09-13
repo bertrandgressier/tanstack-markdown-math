@@ -35,12 +35,25 @@ export interface MathOptions {
    * Map it to a component of your choice via the renderers' `components` map.
    */
   inlineTagName?: string
+  /**
+   * Control the render cache (enabled by default, max 1000 entries, LRU).
+   *
+   * - `true` (default): cache render results keyed by `(tex, displayMode)`.
+   * - `false`: disable caching — every math span calls `render` again. Use
+   *   this if your custom `render` is impure (random output, side effects).
+   * - a number: enable caching with a custom entry limit.
+   *
+   * Cached results are shared per extension instance. Only successful
+   * results are cached; thrown errors propagate uncached.
+   */
+  cache?: boolean | number
 }
 
 export interface MathBlockOptions {
   render?: MathOptions['render']
   output?: MathOptions['output']
   tagName?: MathOptions['tagName']
+  cache?: MathOptions['cache']
 }
 
 export interface MathInlineOptions {
@@ -59,5 +72,6 @@ export interface MathInlineOptions {
    */
   output?: MathOptions['output']
   inlineTagName?: MathOptions['inlineTagName']
+  cache?: MathOptions['cache']
 }
 

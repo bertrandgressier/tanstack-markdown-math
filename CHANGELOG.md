@@ -13,7 +13,8 @@ Inline math joins the `component` output mode, using the new `inlineComponent` n
 - **New `inlineTagName` option** — customizes the inline component tag name (default `'MathInline'`). `tagName` remains block-only.
 - **`output: 'component'` on `mathExtension()` now applies to both block and inline math** — previously inline math always stayed `inlineHtml`.
 - **Trimmed TeX payloads** — inline component `properties.tex` is trimmed, keeping the AST clean when `allowSpaces` captures edge whitespace.
-- **LRU render cache** — every extension instance wraps its renderer in a transparent cache keyed by `(tex, displayMode)` (max 1000 entries). Repeated formulas and streaming re-parses skip redundant KaTeX calls: on a dense 262 KB medical corpus (~1156 formulas, 37% repeats), parse+render drops from ~44 ms to ~11 ms (html mode) and ~49 ms to ~8 ms (component mode). Custom `render` functions are cached too (assumed pure); thrown errors are never cached.
+- **LRU render cache** — every extension instance wraps its renderer in a transparent cache keyed by `(tex, displayMode)` (max 1000 entries by default). Repeated formulas and streaming re-parses skip redundant KaTeX calls: on a dense 262 KB medical corpus (~1156 formulas, 37% repeats), parse+render drops from ~44 ms to ~11 ms (html mode) and ~49 ms to ~8 ms (component mode). Custom `render` functions are cached too (assumed pure); thrown errors are never cached.
+- **New `cache` option** — `cache: false` disables the render cache (for impure custom renderers); `cache: <number>` sets a custom entry limit.
 - **Memoized React components** — `MathBlock` and `MathInline` are wrapped in `React.memo` keyed on `(tex, displayMode)`, so React re-renders no longer re-run KaTeX for unchanged formulas.
 - **33 new integration tests** (TDD, written before implementation) covering parsing in all inline containers, real-world formula extraction from a dense medical corpus (chemistry brackets, Greek letters, French decimal commas, multi-math sentences, prose/money dollar false positives, code protection, `protectMath` round-trip), HTML rendering without `allowHtml`, custom renderers, JSON round-trips, React `components` mapping, SSR, streaming behavior, and render-cache semantics.
 
@@ -23,6 +24,7 @@ Inline math joins the `component` output mode, using the new `inlineComponent` n
 
 - If you use `mathExtension({ output: 'component' })` (introduced in 0.2.0): inline math now also emits `inlineComponent` nodes instead of `inlineHtml`. Map `MathInline` in your `components` option (or your own component reading `props.tex`) to render it; the HTML renderer needs nothing.
 - Inline `output: 'component'` requires `@tanstack/markdown` >= 0.0.15. The default `'html'` mode still works with >= 0.0.13.
+- If you pass a **custom `render` function, its results are now cached** (it is assumed pure). If your renderer relies on side effects or produces non-deterministic output, set `cache: false` on the extension options.
 
 ## 0.2.1
 

@@ -187,6 +187,36 @@ describe('mathInlineExtension', () => {
     expect(calls).toBe(2)
   })
 
+  it('cache: false disables caching for impure renderers', () => {
+    let calls = 0
+    const render = (tex: string): string => {
+      calls++
+      return `<i>${tex}</i>`
+    }
+    const ext = mathInlineExtension({ render, cache: false })
+    parseMarkdown('a $x$ b $x$', { allowHtml: true, extensions: [ext] })
+    expect(calls).toBe(2)
+    parseMarkdown('a $x$', { allowHtml: true, extensions: [ext] })
+    expect(calls).toBe(3)
+  })
+
+  it('cache: N sets a custom LRU limit', () => {
+    let calls = 0
+    const render = (tex: string): string => {
+      calls++
+      return `<i>${tex}</i>`
+    }
+    const ext = mathInlineExtension({ render, cache: 2 })
+    parseMarkdown('$a$ $b$', { allowHtml: true, extensions: [ext] })
+    expect(calls).toBe(2)
+    parseMarkdown('$c$', { allowHtml: true, extensions: [ext] })
+    expect(calls).toBe(3)
+    parseMarkdown('$a$', { allowHtml: true, extensions: [ext] })
+    expect(calls).toBe(4)
+    parseMarkdown('$b$', { allowHtml: true, extensions: [ext] })
+    expect(calls).toBe(5)
+  })
+
   it('renders inline math inside a heading', () => {
     const md = '## Velocity $v = \\frac{d}{t}$'
     const doc = parseMarkdown(md, {

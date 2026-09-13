@@ -94,6 +94,7 @@ const RENDER_CACHE_LIMIT = 1000
  */
 function createCachedRenderer(
   render: (tex: string, displayMode: boolean) => string,
+  limit: number,
 ): (tex: string, displayMode: boolean) => string {
   const cache = new Map<string, string>()
   return (tex: string, displayMode: boolean): string => {
@@ -106,7 +107,7 @@ function createCachedRenderer(
     }
     const html = render(tex, displayMode)
     cache.set(key, html)
-    if (cache.size > RENDER_CACHE_LIMIT) {
+    if (cache.size > limit) {
       const oldest = cache.keys().next().value
       if (oldest !== undefined) cache.delete(oldest)
     }
@@ -117,7 +118,11 @@ function createCachedRenderer(
 function getRenderer(
   opts: MathBlockOptions | MathInlineOptions | undefined,
 ): (tex: string, displayMode: boolean) => string {
-  return createCachedRenderer(opts?.render ?? defaultRenderer)
+  const render = opts?.render ?? defaultRenderer
+  const cache = opts?.cache
+  if (cache === false) return render
+  const limit = typeof cache === 'number' ? Math.max(1, Math.floor(cache)) : RENDER_CACHE_LIMIT
+  return createCachedRenderer(render, limit)
 }
 
 function mathBlockNode(
