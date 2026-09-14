@@ -1,0 +1,26 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "timezone": "Europe/Paris",
+  "schedule": ["before 10am on Monday"],
+  "packageRules": [
+    {
+      "description": "devDependencies: bump to latest, tests validate compat",
+      "matchPackageNames": ["@tanstack/markdown", "katex"],
+      "matchDepTypes": ["devDependencies"],
+      "rangeStrategy": "bump",
+      "groupName": "deps"
+    },
+    {
+      "description": "peerDependencies: only widen when a release falls outside the range, never raise the minimum",
+      "matchPackageNames": ["@tanstack/markdown", "katex"],
+      "matchDepTypes": ["peerDependencies"],
+      "rangeStrategy": "widen"
+    },
+    {
+      "description": "ignore everything else",
+      "matchPackageNames": ["!@tanstack/markdown", "!katex"],
+      "enabled": false
+    }
+  ]
+}
