@@ -18,8 +18,16 @@
       "rangeStrategy": "widen"
     },
     {
+      "description": "tooling: TS + test runner in one PR, majors included, CI validates",
+      "matchPackageNames": ["typescript", "vitest"],
+      "matchDepTypes": ["devDependencies"],
+      "groupName": "tooling",
+      "rangeStrategy": "bump",
+      "separateMajorMinor": false
+    },
+    {
       "description": "ignore everything else",
-      "matchPackageNames": ["!@tanstack/markdown", "!katex"],
+      "matchPackageNames": ["!@tanstack/markdown", "!katex", "!typescript", "!vitest"],
       "enabled": false
     }
   ]
