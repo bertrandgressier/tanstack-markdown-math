@@ -9,8 +9,8 @@ importers:
   .:
     devDependencies:
       '@tanstack/markdown':
-        specifier: 0.0.15
-        version: 0.0.15(react@19.3.0)
+        specifier: 0.0.16
+        version: 0.0.16(react@19.3.0)
       '@types/katex':
         specifier: ^0.16.7
         version: 0.16.8
@@ -21,8 +21,8 @@ importers:
         specifier: ^19.0.0
         version: 19.3.0(@types/react@19.3.0)
       katex:
-        specifier: ^0.18.7
-        version: 0.18.7
+        specifier: ^0.19.0
+        version: 0.19.0
       react:
         specifier: ^19.0.0
         version: 19.3.0
@@ -335,8 +335,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@tanstack/markdown@0.0.15':
-    resolution: {integrity: sha512-8hZFgCxGzYcBogffndvOm/prhdDt8nATQ4jzd9b0ziU0j4ofW/5guC1sknO2JyBNSXPgeLrrdXlJA8sbb1zw8w==}
+  '@tanstack/markdown@0.0.16':
+    resolution: {integrity: sha512-2fGZd4VMBwV85lH5AA+Iad9DXU4/Cz+sb/P3honzrh/zqqoSYV/rXuJrG4cC7XJcpofhjbOWBL74AHf4WZrqTw==}
     peerDependencies:
       octane: '>=0.1.12'
       react: '>=18'
@@ -544,8 +544,8 @@ packages:
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
 
-  katex@0.18.7:
-    resolution: {integrity: sha512-h+UCwkZ+4Jz8WQ7MLGfj7UVFrRCizGb912fwF4luGdYsC5paYG1vx+jy+KRcC/XkpjGva/P7nAWuxNnPzRvzHw==}
+  katex@0.19.0:
+    resolution: {integrity: sha512-v6Tznz3zJ7u3niRCoDTsumM2+HA2XXcCu+WAacCeHD2z3p9A9Ks987o5FzfTGBN0e8A0vjEgIDvLbICrXpdw/Q==}
     hasBin: true
 
   magic-string@1.4.1:
@@ -871,7 +871,7 @@ snapshots:
   '@rollup/rollup-win32-x64-msvc@4.63.1':
     optional: true
 
-  '@tanstack/markdown@0.0.15(react@19.3.0)':
+  '@tanstack/markdown@0.0.16(react@19.3.0)':
     optionalDependencies:
       react: 19.3.0
 
@@ -1017,7 +1017,7 @@ snapshots:
   fsevents@2.3.3:
     optional: true
 
-  katex@0.18.7:
+  katex@0.19.0:
     dependencies:
       commander: 15.0.0
 
