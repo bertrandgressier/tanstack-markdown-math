@@ -505,8 +505,8 @@ describe('edge cases', () => {
     })
     const html = findHtmlNodes(doc)
     expect(html.length).toBe(1)
-    expect(html[0].value).toContain('katex-error')
-    expect(html[0].value).toContain('⚠️')
+    expect(html[0].value).toContain('katex-error-badge')
+    expect(html[0].value).not.toContain('⚠️')
   })
 
   it('closes multiline block when $$ is attached to content on the closing line', () => {

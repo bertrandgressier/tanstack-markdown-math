@@ -1,4 +1,3 @@
-import katex from 'katex'
 import type {
   BlockNode,
   ComponentNode,
@@ -11,12 +10,17 @@ import type {
   MathInlineOptions,
   MathOptions,
 } from './types.js'
+import { defaultRenderer } from './render.js'
 
 export const MATH_UNDERSCORE_SUB = '\uE000'
 export const MATH_ASTERISK_SUB = '\uE001'
 export const MATH_BACKSLASH_SUB = '\uE002'
 
 /**
+ * @deprecated No longer needed with `@tanstack/markdown` >= 1.0: the inline
+ * math parser runs before emphasis/escape handling. Kept for content that is
+ * already pre-protected.
+ *
  * Protects backslashes, underscores and asterisks inside math formulas (`$...$` and `$$...$$`)
  * before markdown parsing. This prevents markdown parsers from unescaping TeX commands (like `\{`, `\}`, `\\`)
  * or misinterpreting TeX subscripts/operators like `$_2$` or `*` as markdown emphasis (`*...*` or `_..._`).
@@ -36,6 +40,9 @@ export function protectMath(content: string): string {
 }
 
 /**
+ * @deprecated Only needed for pre-protected content (see `protectMath`).
+ * Safe no-op otherwise.
+ *
  * Restores protected characters inside extracted TeX.
  */
 export function restoreMathChars(tex: string): string {
@@ -43,45 +50,6 @@ export function restoreMathChars(tex: string): string {
     .replaceAll(MATH_UNDERSCORE_SUB, '_')
     .replaceAll(MATH_ASTERISK_SUB, '*')
     .replaceAll(MATH_BACKSLASH_SUB, '\\')
-}
-
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-}
-
-const DEFAULT_KATEX_OPTIONS: katex.KatexOptions = {
-  throwOnError: false,
-  strict: false,
-}
-
-function defaultRenderer(tex: string, displayMode: boolean): string {
-  try {
-    const html = katex.renderToString(tex, {
-      ...DEFAULT_KATEX_OPTIONS,
-      displayMode,
-      throwOnError: false,
-    })
-    if (html.includes('class="katex-error"') || html.includes('#cc0000')) {
-      const titleMatch = html.match(/title="([^"]*)"/)
-      const errTitle = titleMatch ? titleMatch[1] : 'Erreur syntaxe LaTeX'
-      if (displayMode) {
-        return `<div class="katex-error-box my-2 p-2 rounded-lg text-xs font-mono bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-900" title="${escapeHtml(errTitle)}"><span class="font-bold">⚠️ Erreur KaTeX:</span> ${escapeHtml(errTitle)}<pre class="mt-1 overflow-x-auto">${escapeHtml(tex)}</pre></div>`
-      }
-      return `<span class="katex-error-badge inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-mono bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-900" title="${escapeHtml(errTitle)}">⚠️ <code class="text-[11px]">${escapeHtml(tex)}</code></span>`
-    }
-    return html
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err)
-    if (displayMode) {
-      return `<div class="katex-error-box my-2 p-2 rounded-lg text-xs font-mono bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-900" title="${escapeHtml(msg)}"><span class="font-bold">⚠️ Erreur KaTeX:</span> ${escapeHtml(msg)}<pre class="mt-1 overflow-x-auto">${escapeHtml(tex)}</pre></div>`
-    }
-    return `<span class="katex-error-badge inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-mono bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-900" title="${escapeHtml(msg)}">⚠️ <code class="text-[11px]">${escapeHtml(tex)}</code></span>`
-  }
 }
 
 const RENDER_CACHE_LIMIT = 1000
@@ -174,17 +142,18 @@ export function mathBlockExtension(
   const render = getRenderer(opts)
   const output = opts?.output ?? 'html'
   const tagName = opts?.tagName ?? DEFAULT_MATH_TAG_NAME
+  const unclosedBlock = opts?.unclosedBlock ?? true
 
   const emit = (tex: string): BlockNode =>
     output === 'component'
-      ? mathComponentBlockNode(tex, tagName)
-      : mathBlockNode(tex, render)
+      ? mathComponentBlockNode(tex.trim(), tagName)
+      : mathBlockNode(tex.trim(), render)
 
   return {
     name: 'math-block',
     parseBlock(context) {
       const line = context.lines[context.index] ?? ''
-      const open = line.match(/^\s*\$\$(.*)$/)
+      const open = line.match(/^ {0,3}\$\$(.*)$/)
       if (!open) return undefined
 
       const after = open[1]
@@ -217,12 +186,13 @@ export function mathBlockExtension(
         }
         content.push(l)
       }
+      if (!unclosedBlock) return undefined
       context.consume(i - context.index)
       return emit(restoreMathChars(content.join('\n')))
     },
     renderHtml(node) {
       if (!isMathComponentNode(node)) return undefined
-      return render(restoreMathChars(node.properties?.tex ?? ''), true)
+      return render(restoreMathChars(node.properties?.tex ?? '').trim(), true)
     },
   }
 }
@@ -230,250 +200,169 @@ export function mathBlockExtension(
 function mathInlineNode(
   tex: string,
   render: (tex: string, displayMode: boolean) => string,
-  displayMode = false,
+  displayMode: boolean,
   inlineTag?: string,
 ): InlineNode {
+  const trimmed = restoreMathChars(tex).trim()
   if (inlineTag) {
     return {
       type: 'inlineComponent',
-      name: 'math',
+      name: MATH_COMPONENT_NAME,
       attributes: {},
       tagName: inlineTag,
-      properties: { tex: tex.trim() },
+      properties: { tex: trimmed },
       children: [],
     } as InlineNode
   }
   return {
     type: 'inlineHtml',
-    value: render(tex, displayMode),
+    value: render(trimmed, displayMode),
   } as InlineNode
 }
 
-function replaceMathInHtml(
+const WS = /\s/
+const BLANK_LINE = /\n\s*\n/y
+const DIGIT = /\d/
+
+/**
+ * Finds the math span starting at `s[i]` (which must be `$`). Linear in the
+ * distance to the next unescaped `$`.
+ */
+function findClose(
+  s: string,
+  i: number,
+  allowSpaces: boolean,
+): { tex: string; length: number; display: boolean } | undefined {
+  if (s.startsWith('$$', i)) {
+    const c = s.indexOf('$$', i + 2)
+    return c > i + 2
+      ? { tex: s.slice(i + 2, c), length: c + 2 - i, display: true }
+      : undefined
+  }
+  let j = i + 1
+  if (j >= s.length) return undefined
+  if (!allowSpaces && WS.test(s[j]!)) return undefined
+  for (; j < s.length; j++) {
+    const ch = s[j]
+    if (ch === '\\') {
+      j++
+      continue
+    }
+    if (ch === '\n') {
+      BLANK_LINE.lastIndex = j
+      if (BLANK_LINE.test(s)) return undefined
+      continue
+    }
+    if (ch === '$') {
+      if (j === i + 1) return undefined
+      if (!allowSpaces && WS.test(s[j - 1]!)) return undefined
+      if (DIGIT.test(s[j + 1] ?? '')) return undefined
+      return { tex: s.slice(i + 1, j), length: j + 1 - i, display: false }
+    }
+  }
+  return undefined
+}
+
+const INLINE_HTML_BLOCK = /^<\s*(?:u|span|em|strong|b|i|font|small|sub|sup|mark)\b/i
+
+/** Replaces math spans inside a raw block-html string. */
+function replaceMathInString(
   html: string,
   render: (tex: string, displayMode: boolean) => string,
-  allowSpaces?: boolean,
+  allowSpaces: boolean,
 ): string {
-  const re = allowSpaces
-    ? /\$\$([\s\S]+?)\$\$|\$((?:[^\n$]|\n(?!\s*\n))+?)\$/g
-    : /\$\$([\s\S]+?)\$\$|\$([^\s$](?:(?:[^\n$]|\n(?!\s*\n))*?[^\s$])?)\$/g
-
-  return html.replace(re, (_match, p1, p2) => {
-    const rawTex = p1 ?? p2 ?? ''
-    const tex = restoreMathChars(rawTex)
-    return render(tex, false)
-  })
-}
-
-function splitTextNode(
-  value: string,
-  render: (tex: string, displayMode: boolean) => string,
-  allowSpaces?: boolean,
-  inlineTag?: string,
-): InlineNode[] {
-  const re = allowSpaces
-    ? /\$\$([\s\S]+?)\$\$|\$((?:[^\n$]|\n(?!\s*\n))+?)\$/g
-    : /\$\$([\s\S]+?)\$\$|\$([^\s$](?:(?:[^\n$]|\n(?!\s*\n))*?[^\s$])?)\$/g
-
-  const out: InlineNode[] = []
+  let out = ''
   let last = 0
-  for (const m of value.matchAll(re)) {
-    const idx = m.index ?? 0
-    const rawTex = m[1] ?? m[2] ?? ''
-    const tex = restoreMathChars(rawTex)
-    if (idx > last) out.push({ type: 'text', value: value.slice(last, idx) })
-    out.push(mathInlineNode(tex, render, false, inlineTag))
-    last = idx + m[0].length
-  }
-  if (last < value.length) {
-    out.push({ type: 'text', value: value.slice(last) })
-  }
-  return out
-}
-
-function mapInlines(
-  inlines: InlineNode[],
-  render: (tex: string, displayMode: boolean) => string,
-  allowSpaces?: boolean,
-  inlineTag?: string,
-): InlineNode[] {
-  const out: InlineNode[] = []
-  for (const node of inlines) {
-    if (
-      node?.type === 'text' &&
-      (node.value.includes('$') ||
-        node.value.includes(MATH_UNDERSCORE_SUB) ||
-        node.value.includes(MATH_BACKSLASH_SUB))
-    ) {
-      out.push(...splitTextNode(node.value, render, allowSpaces, inlineTag))
-    } else if (node?.type === 'inlineHtml' && (node as { value: string }).value.includes('$')) {
-      ;(node as { value: string }).value = replaceMathInHtml(
-        (node as { value: string }).value,
-        render,
-        allowSpaces,
-      )
-      out.push(node)
+  let i = html.indexOf('$')
+  while (i !== -1) {
+    const r = findClose(html, i, allowSpaces)
+    if (r) {
+      out += html.slice(last, i) + render(restoreMathChars(r.tex).trim(), false)
+      last = i + r.length
+      i = html.indexOf('$', last)
     } else {
-      const children = (node as { children?: InlineNode[] }).children
-      if (Array.isArray(children)) {
-        ;(node as { children: InlineNode[] }).children = mapInlines(
-          children,
-          render,
-          allowSpaces,
-          inlineTag,
-        )
-      }
-      out.push(node)
+      i = html.indexOf('$', i + (html.startsWith('$$', i) ? 2 : 1))
     }
   }
-  return out
-}
-
-const INLINE_CONTAINER_TYPES = new Set([
-  'paragraph',
-  'heading',
-  'tableCell',
-])
-
-function walkNode(
-  node: unknown,
-  render: (tex: string, displayMode: boolean) => string,
-  allowSpaces?: boolean,
-  inlineTag?: string,
-): void {
-  if (!node || typeof node !== 'object') return
-  const n = node as Record<string, unknown>
-  const type = n.type as string
-
-  if (INLINE_CONTAINER_TYPES.has(type)) {
-    if (Array.isArray(n.children)) {
-      n.children = mapInlines(
-        n.children as InlineNode[],
-        render,
-        allowSpaces,
-        inlineTag,
-      )
-    }
-    return
-  }
-
-  if (
-    type === 'code' ||
-    type === 'inlineCode'
-  ) {
-    return
-  }
-
-  if (type === 'html') {
-    const val = (n.value as string) ?? ''
-    // Allow transforming math inside inline-style HTML blocks (e.g. <u>...</u> at start of line)
-    // while leaving structural block HTML (e.g. <div>...</div>) untouched.
-    if (
-      /^<\s*(?:u|span|em|strong|b|i|font|small|sub|sup|mark)\b/i.test(val) &&
-      val.includes('$')
-    ) {
-      ;(n as { value: string }).value = replaceMathInHtml(
-        val,
-        render,
-        allowSpaces,
-      )
-    }
-    return
-  }
-
-  if (type === 'inlineHtml') {
-    const val = (n.value as string) ?? ''
-    if (val.includes('$')) {
-      ;(n as { value: string }).value = replaceMathInHtml(
-        val,
-        render,
-        allowSpaces,
-      )
-    }
-    return
-  }
-
-  if (type === 'table') {
-    if (Array.isArray(n.header)) {
-      (n.header as unknown[]).forEach((child) =>
-        walkNode(child, render, allowSpaces, inlineTag),
-      )
-    }
-    if (Array.isArray(n.rows)) {
-      for (const row of n.rows as unknown[]) {
-        if (Array.isArray(row)) {
-          row.forEach((cell) => walkNode(cell, render, allowSpaces, inlineTag))
-        }
-      }
-    }
-    return
-  }
-
-  if (type === 'list') {
-    if (Array.isArray(n.items)) {
-      (n.items as unknown[]).forEach((item) =>
-        walkNode(item, render, allowSpaces, inlineTag),
-      )
-    }
-    return
-  }
-
-  if (type === 'blockquote' || type === 'callout') {
-    if (Array.isArray(n.children)) {
-      (n.children as unknown[]).forEach((child) =>
-        walkNode(child, render, allowSpaces, inlineTag),
-      )
-    }
-    return
-  }
-
-  if (
-    type === 'strong' ||
-    type === 'emphasis' ||
-    type === 'strike' ||
-    type === 'link'
-  ) {
-    if (Array.isArray(n.children)) {
-      n.children = mapInlines(
-        n.children as InlineNode[],
-        render,
-        allowSpaces,
-        inlineTag,
-      )
-    }
-    return
-  }
-
-  if (Array.isArray(n.children)) {
-    (n.children as unknown[]).forEach((child) =>
-      walkNode(child, render, allowSpaces, inlineTag),
-    )
-  }
+  return last === 0 ? html : out + html.slice(last)
 }
 
 /**
- * Inline math extension. Walks the parsed document and converts every
- * balanced `$...$` or `$$...$$` pair into a KaTeX-rendered `inlineHtml` node,
- * or into an `inlineComponent` node when `output: 'component'` is set.
+ * Copy-on-change walk over block nodes. Only block-level `html` nodes that
+ * start with an inline-style tag are rewritten (e.g. `<u>$V_1$ ...</u>` with
+ * `allowHtml`). Input nodes are never mutated.
+ */
+function transformBlocks<T>(
+  node: T,
+  render: (tex: string, displayMode: boolean) => string,
+  allowSpaces: boolean,
+): T {
+  if (Array.isArray(node)) {
+    let changed = false
+    const next = node.map((c) => {
+      const r = transformBlocks(c, render, allowSpaces)
+      if (r !== c) changed = true
+      return r
+    })
+    return (changed ? next : node) as T
+  }
+  if (!node || typeof node !== 'object') return node
+  const n = node as Record<string, unknown>
+  if (n.type === 'html') {
+    const val = typeof n.value === 'string' ? n.value : ''
+    if (
+      val.includes('$') &&
+      !val.includes('class="katex') &&
+      INLINE_HTML_BLOCK.test(val)
+    ) {
+      const value = replaceMathInString(val, render, allowSpaces)
+      if (value !== val) return { ...n, value } as T
+    }
+    return node
+  }
+  if (n.type === 'code') return node
+  let copy: Record<string, unknown> | undefined
+  for (const key of ['children', 'items', 'header', 'rows']) {
+    const v = n[key]
+    if (!Array.isArray(v)) continue
+    const r = transformBlocks(v, render, allowSpaces)
+    if (r !== v) (copy ??= { ...n })[key] = r
+  }
+  return (copy ?? node) as T
+}
+
+/**
+ * Inline math extension. Uses the `@tanstack/markdown` 1.0 `inlineParser`
+ * API to turn `$...$` / `$$...$$` spans into KaTeX-rendered `inlineHtml`
+ * nodes, or `inlineComponent` nodes when `output: 'component'` is set.
  */
 export function mathInlineExtension(
   opts?: MathInlineOptions,
 ): MarkdownExtension {
   const render = getRenderer(opts)
-  const allowSpaces = opts?.allowSpaces
+  const allowSpaces = opts?.allowSpaces ?? false
   const inlineTag =
     opts?.output === 'component' ? opts.inlineTagName ?? 'MathInline' : undefined
   return {
     name: 'math-inline',
+    inlineParser: {
+      markers: '$',
+      parse({ source, index }) {
+        const r = findClose(source, index, allowSpaces)
+        if (!r) return undefined
+        return {
+          node: mathInlineNode(r.tex, render, false, inlineTag),
+          length: r.length,
+        }
+      },
+    },
     transformDocument(doc: MarkdownDocument) {
-      ;(doc.children as unknown[]).forEach((child) =>
-        walkNode(child, render, allowSpaces, inlineTag),
-      )
-      return doc
+      const children = transformBlocks(doc.children, render, allowSpaces)
+      return children === doc.children ? doc : { ...doc, children }
     },
     renderHtml(node) {
       if (!isMathInlineComponentNode(node)) return undefined
-      return render(restoreMathChars(node.properties?.tex ?? ''), false)
+      return render(restoreMathChars(node.properties?.tex ?? '').trim(), false)
     },
   }
 }

@@ -1,11 +1,6 @@
 import { createElement, memo } from 'react'
 
-import katexRender from 'katex'
-
-const DEFAULT_KATEX_OPTIONS: katexRender.KatexOptions = {
-  throwOnError: false,
-  strict: false,
-}
+import { defaultRenderer } from './render.js'
 
 export interface MathComponentProps {
   /** Raw TeX payload carried by the `component` node's `properties.tex`. */
@@ -36,10 +31,7 @@ export interface MathComponentProps {
  * skip the KaTeX call entirely.
  */
 export const MathBlock = memo(function MathBlock({ tex, displayMode = true }: MathComponentProps) {
-  const html = katexRender.renderToString(tex ?? '', {
-    ...DEFAULT_KATEX_OPTIONS,
-    displayMode,
-  })
+  const html = defaultRenderer((tex ?? '').trim(), displayMode)
   return createElement('div', {
     className: 'math-block',
     dangerouslySetInnerHTML: { __html: html },
@@ -68,10 +60,7 @@ export const MathBlock = memo(function MathBlock({ tex, displayMode = true }: Ma
  * skip the KaTeX call entirely.
  */
 export const MathInline = memo(function MathInline({ tex, displayMode = false }: MathComponentProps) {
-  const html = katexRender.renderToString(tex ?? '', {
-    ...DEFAULT_KATEX_OPTIONS,
-    displayMode,
-  })
+  const html = defaultRenderer((tex ?? '').trim(), displayMode)
   return createElement('span', {
     className: 'math-inline',
     dangerouslySetInnerHTML: { __html: html },
