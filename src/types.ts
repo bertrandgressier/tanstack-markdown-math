@@ -2,7 +2,8 @@ export interface MathOptions {
   /**
    * Custom math renderer. Receives the raw TeX string and whether it should
    * be rendered in display mode. Defaults to `katex.renderToString` with
-   * `throwOnError: false` and `strict: false`.
+   * `throwOnError: true` (errors are caught and shown as a neutral
+   * `katex-error-badge` / `katex-error-box` element) and `strict: false`.
    */
   render?: (tex: string, displayMode: boolean) => string
   /**
@@ -47,6 +48,13 @@ export interface MathOptions {
    * results are cached; thrown errors propagate uncached.
    */
   cache?: boolean | number
+  /**
+   * Whether an unclosed `$$` block (no closing fence before end of input) is
+   * rendered as math. `true` (default) keeps streaming-friendly behavior:
+   * the partial formula renders as it arrives. `false` leaves the content as
+   * plain text until the closing `$$` appears.
+   */
+  unclosedBlock?: boolean
 }
 
 export interface MathBlockOptions {
@@ -54,14 +62,14 @@ export interface MathBlockOptions {
   output?: MathOptions['output']
   tagName?: MathOptions['tagName']
   cache?: MathOptions['cache']
+  unclosedBlock?: MathOptions['unclosedBlock']
 }
 
 export interface MathInlineOptions {
   render?: MathOptions['render']
   allowSpaces?: MathOptions['allowSpaces']
   /**
-   * Output node type for inline math. Requires `@tanstack/markdown` >= 0.0.15
-   * for the `inlineComponent` node type.
+   * Output node type for inline math. Requires `@tanstack/markdown` >= 1.0.0.
    *
    * - `'html'` (default): emits a pre-rendered `inlineHtml` node; renderers
    *   need `allowHtml: true`.

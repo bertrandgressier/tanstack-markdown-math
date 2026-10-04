@@ -36,7 +36,7 @@
     "prepublishOnly": "pnpm run build"
   },
   "peerDependencies": {
-    "@tanstack/markdown": ">=0.0.13 <2.0.0",
+    "@tanstack/markdown": ">=1.0.0 <2.0.0",
     "katex": ">=0.16",
     "react": ">=18"
   },

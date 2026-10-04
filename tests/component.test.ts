@@ -60,7 +60,7 @@ describe('mathBlockExtension component output — parsing', () => {
     const doc = parseMarkdown('$$ x = 1 $$', { extensions: [componentExt] })
     const components = findComponentNodes(doc)
     expect(components).toHaveLength(1)
-    expect(components[0].properties.tex).toBe(' x = 1 ')
+    expect(components[0].properties.tex).toBe('x = 1')
   })
 
   it('supports a custom tagName', () => {
