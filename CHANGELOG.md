@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.0.0](https://github.com/bertrandgressier/tanstack-markdown-math/compare/v0.3.1...v1.0.0) (2026-10-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* peer dependency minimum raised to @tanstack/markdown 1.0.0. How to migrate: run `pnpm add @tanstack/markdown@^1 tanstack-markdown-math@^1` (or the npm/yarn equivalent).
+
+### Features
+
+* adopt @tanstack/markdown 1.0 inlineParser API ([#10](https://github.com/bertrandgressier/tanstack-markdown-math/issues/10)) ([a7f8538](https://github.com/bertrandgressier/tanstack-markdown-math/commit/a7f8538349bc4f267c83025778785328454f13f4))
+
+
+### Bug Fixes
+
+* support @tanstack/markdown 1.x ([#9](https://github.com/bertrandgressier/tanstack-markdown-math/issues/9)) ([45e604e](https://github.com/bertrandgressier/tanstack-markdown-math/commit/45e604eaa591a1b3f5ea245f871fb7f541a071a4))
+
 ## 0.3.1
 
 ### Changes
