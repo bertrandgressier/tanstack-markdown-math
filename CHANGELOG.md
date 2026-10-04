@@ -6,6 +6,9 @@
 ### ⚠ BREAKING CHANGES
 
 * peer dependency minimum raised to @tanstack/markdown 1.0.0. How to migrate: run `pnpm add @tanstack/markdown@^1 tanstack-markdown-math@^1` (or the npm/yarn equivalent).
+* heading slugs change when headings contain inline math. How to migrate: regenerate any stored heading anchors, table-of-contents entries and deep links for headings that contain `$...$`.
+* default error output now uses English text and neutral CSS classes (`katex-error-badge` / `katex-error-box`). How to migrate: replace styling that targeted the old Tailwind classes or French strings with CSS for those classes, or pass a custom `render` option to keep your previous markup.
+* `protectMath` and `restoreMathChars` are deprecated (still exported). How to migrate: remove `protectMath(content)` calls before parsing; math with `_`, `*` and `\` now works without it.
 
 ### Features
 
